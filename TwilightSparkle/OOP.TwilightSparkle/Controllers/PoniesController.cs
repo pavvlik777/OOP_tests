@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using OOP.TwilightSparkle.Foundation.Builders;
@@ -38,7 +39,7 @@ namespace OOP.TwilightSparkle.Controllers
             return pony;
         }
 
-        [HttpGet("pegasus/{id}")]
+        [HttpGet("pegasuses/{id}")]
         public async Task<ActionResult<PegasusPony>> GetPegasusById(string id)
         {
             var externalPony = await _poniesService.GetByIdAsync(id);
@@ -54,7 +55,7 @@ namespace OOP.TwilightSparkle.Controllers
             return pony;
         }
 
-        [HttpPost("pegasus/{id}/fly")]
+        [HttpPost("pegasuses/{id}/fly")]
         public async Task<ActionResult<PegasusPony>> MakePegasusFly(string id)
         {
             var externalPony = await _poniesService.GetByIdAsync(id);
@@ -73,6 +74,25 @@ namespace OOP.TwilightSparkle.Controllers
             }
 
             return Ok();
+        }
+
+        [HttpGet("pegasuses/fast")]
+        public async Task<ActionResult<PegasusPony>> GetFastPegasuses()
+        {
+            var externalPonies = await _poniesService.GetFastPegasusesAsync();
+
+            var ponies = externalPonies
+                .Select(p =>
+                {
+                    var pony = new PegasusPony();
+                    _ponyBuilder.SetCommonInfo(pony, p.Id, p.Name);
+                    _ponyBuilder.SetPegasusInfo(pony, p.FlyingSpeed!.Value);
+
+                    return pony;
+                })
+                .ToList();
+
+            return Ok(ponies);
         }
 
 

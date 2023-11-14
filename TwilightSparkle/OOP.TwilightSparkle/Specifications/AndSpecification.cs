@@ -1,6 +1,6 @@
 ﻿namespace OOP.TwilightSparkle.Specifications
 {
-    public sealed class AndSpecification<T> : ISpecification<T>
+    public sealed class AndSpecification<T> : Specification<T>
     {
         private readonly ISpecification<T> _first;
         private readonly ISpecification<T> _second;
@@ -13,7 +13,7 @@
         }
 
 
-        public bool IsSatisfiedBy(T obj)
+        public override bool IsSatisfiedBy(T obj)
         {
             return _first.IsSatisfiedBy(obj) && _second.IsSatisfiedBy(obj);
         }

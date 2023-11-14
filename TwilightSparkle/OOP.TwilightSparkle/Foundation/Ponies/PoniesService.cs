@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using OOP.TwilightSparkle.Specifications;
 
 namespace OOP.TwilightSparkle.Foundation.Ponies
 {
@@ -41,9 +42,22 @@ namespace OOP.TwilightSparkle.Foundation.Ponies
         public async Task<ExternalPony> GetByIdAsync(string id)
         {
             await Task.Delay(3000);
+
             var pony = Ponies.SingleOrDefault(p => p.Id == id);
 
             return pony;
+        }
+
+        public async Task<IReadOnlyCollection<ExternalPony>> GetFastPegasusesAsync()
+        {
+            await Task.Delay(3000);
+
+            var fastPonySpecification = new FastPonySpecification();
+            var pegasusSpecification = new FastPonySpecification();
+            var specification = fastPonySpecification & pegasusSpecification;
+            var fastPegasuses = Ponies.Where(p => specification.IsSatisfiedBy(p)).ToList();
+
+            return fastPegasuses;
         }
     }
 }

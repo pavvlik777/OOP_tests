@@ -34,5 +34,10 @@ namespace OOP.TwilightSparkle.Foundation.Ponies
 
             return cachedPony;
         }
+
+        public Task<IReadOnlyCollection<ExternalPony>> GetFastPegasusesAsync()
+        {
+            return _service.GetFastPegasusesAsync();
+        }
     }
 }
