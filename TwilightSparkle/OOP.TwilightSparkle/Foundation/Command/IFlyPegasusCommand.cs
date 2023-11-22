@@ -1,7 +1,7 @@
 ﻿namespace OOP.TwilightSparkle.Foundation.Command
 {
-    public interface ICommand
+    public interface IFlyPegasusCommand
     {
-        void Execute();
+        void Fly();
     }
 }

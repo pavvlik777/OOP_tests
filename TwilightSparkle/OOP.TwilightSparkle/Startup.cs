@@ -20,7 +20,7 @@ namespace OOP.TwilightSparkle
 
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddSingleton<IPonyBuilder, PonyBuilder>();
+            services.AddSingleton<IPegasusPonyBuilder, PegasusPonyBuilder>();
             services.AddSingleton<IPoniesService, CachedPoniesService>();
 
             services.AddCors(options =>

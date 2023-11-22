@@ -1,9 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using OOP.TwilightSparkle.Foundation.Builders;
+using OOP.TwilightSparkle.Foundation.Command;
 using OOP.TwilightSparkle.Foundation.Ponies;
+using OOP.TwilightSparkle.Foundation.State;
 using OOP.TwilightSparkle.Models;
 
 namespace OOP.TwilightSparkle.Controllers
@@ -13,14 +16,14 @@ namespace OOP.TwilightSparkle.Controllers
     public sealed class PoniesController : ControllerBase
     {
         private readonly IPoniesService _poniesService;
-        private readonly IPonyBuilder _ponyBuilder;
+        private readonly IPegasusPonyBuilder _ponyBuilder;
 
         private readonly WeatherContext _weatherContext;
 
 
         public PoniesController(
             IPoniesService poniesService,
-            IPonyBuilder ponyBuilder)
+            IPegasusPonyBuilder ponyBuilder)
         {
             _poniesService = poniesService;
             _ponyBuilder = ponyBuilder;
@@ -33,8 +36,10 @@ namespace OOP.TwilightSparkle.Controllers
         public async Task<ActionResult<Pony>> GetById(string id)
         {
             var externalPony = await _poniesService.GetByIdAsync(id);
-            var pony = new Pony();
-            _ponyBuilder.SetCommonInfo(pony, externalPony.Id, externalPony.Name);
+            var pony = _ponyBuilder
+                .Reset()
+                .SetCommonInfo(externalPony.Id, externalPony.Name)
+                .GetResult();
 
             return pony;
         }
@@ -48,9 +53,11 @@ namespace OOP.TwilightSparkle.Controllers
                 return NotFound();
             }
 
-            var pony = new PegasusPony();
-            _ponyBuilder.SetCommonInfo(pony, externalPony.Id, externalPony.Name);
-            _ponyBuilder.SetPegasusInfo(pony, externalPony.FlyingSpeed!.Value);
+            var pony = _ponyBuilder
+                .Reset()
+                .SetCommonInfo(externalPony.Id, externalPony.Name)
+                .SetPegasusInfo(externalPony.FlyingSpeed!.Value)
+                .GetResult();
 
             return pony;
         }
@@ -64,14 +71,32 @@ namespace OOP.TwilightSparkle.Controllers
                 return NotFound();
             }
 
-            var pony = new PegasusPony();
-            _ponyBuilder.SetCommonInfo(pony, externalPony.Id, externalPony.Name);
-            _ponyBuilder.SetPegasusInfo(pony, externalPony.FlyingSpeed!.Value);
+            var pony = _ponyBuilder
+                .Reset()
+                .SetCommonInfo(externalPony.Id, externalPony.Name)
+                .SetPegasusInfo(externalPony.FlyingSpeed!.Value)
+                .GetResult();
 
             if (!_weatherContext.CheckIfPegasusCanFly(pony))
             {
                 return BadRequest();
             }
+
+            var flyService = new PegasusFlyService();
+            var commands = new List<IFlyPegasusCommand>
+            {
+                new FlyFastCommand(flyService, _weatherContext, pony),
+                new FlyBackwardsCommand(flyService, pony),
+                new FlyBackwardsCommand(flyService, pony),
+                new FlyFastCommand(flyService, _weatherContext, pony),
+            };
+
+            foreach (var command in commands)
+            {
+                command.Fly();
+            }
+
+            flyService.WriteCommandsStats();
 
             return Ok();
         }
@@ -84,9 +109,11 @@ namespace OOP.TwilightSparkle.Controllers
             var ponies = externalPonies
                 .Select(p =>
                 {
-                    var pony = new PegasusPony();
-                    _ponyBuilder.SetCommonInfo(pony, p.Id, p.Name);
-                    _ponyBuilder.SetPegasusInfo(pony, p.FlyingSpeed!.Value);
+                    var pony = _ponyBuilder
+                        .Reset()
+                        .SetCommonInfo(p.Id, p.Name)
+                        .SetPegasusInfo(p.FlyingSpeed!.Value)
+                        .GetResult();
 
                     return pony;
                 })
@@ -97,71 +124,32 @@ namespace OOP.TwilightSparkle.Controllers
 
 
 
-        //PATTERN State
-        private interface IWeatherState
+        public sealed class PegasusFlyService
         {
-            bool CheckIfPegasusCanFly(PegasusPony pegasus, WeatherContext context);
-        }
+            private readonly IList<IFlyPegasusCommand> _commands;
+            private readonly IList<string> _commandMessages;
 
-        private sealed class SunWeather : IWeatherState
-        {
-            public bool CheckIfPegasusCanFly(PegasusPony pegasus, WeatherContext context)
+
+            public PegasusFlyService()
             {
-                context.ChangeState(new WindyWeather());
-
-                return true;
+                _commands = new List<IFlyPegasusCommand>();
+                _commandMessages = new List<string>();
             }
-        }
 
-        private sealed class WindyWeather : IWeatherState
-        {
-            public bool CheckIfPegasusCanFly(PegasusPony pegasus, WeatherContext context)
+
+            public void SaveExecutedCommand(IFlyPegasusCommand command, string commandMessage)
             {
-                return pegasus.FlyingSpeed > 10;
+                _commands.Add(command);
+                _commandMessages.Add(commandMessage);
             }
-        }
 
-        private sealed class StormWeather : IWeatherState
-        {
-            public bool CheckIfPegasusCanFly(PegasusPony pegasus, WeatherContext context)
+            public void WriteCommandsStats()
             {
-                context.ChangeState(new SunWeather());
-
-                return false;
-            }
-        }
-
-
-        private sealed class WeatherContext
-        {
-            private IWeatherState _state;
-
-
-            public WeatherContext()
-            {
-                var now = DateTime.Now;
-                if (now.Day < 3)
+                Console.WriteLine($"Successfully executed {_commands.Count} commands.");
+                foreach (var commandMessage in _commandMessages)
                 {
-                    _state = new SunWeather();
-                    return;
+                    Console.Write(commandMessage);
                 }
-                if (now.Day < 15)
-                {
-                    _state = new WindyWeather();
-                    return;
-                }
-
-                _state = new StormWeather();
-            }
-
-            public bool CheckIfPegasusCanFly(PegasusPony pegasus)
-            {
-                return _state.CheckIfPegasusCanFly(pegasus, this);
-            }
-
-            public void ChangeState(IWeatherState newState)
-            {
-                _state = newState;
             }
         }
     }
