@@ -1,4 +1,6 @@
-﻿namespace OOP.TwilightSparkle.Models
+﻿using System.Collections.Generic;
+
+namespace OOP.TwilightSparkle.Models
 {
     public sealed class Butterfly : IFlyingEntity
     {
@@ -7,5 +9,7 @@
         public string Name { get; set; }
 
         public int FlyingSpeed { get; set; }
+
+        public IReadOnlyCollection<IFlyingEntity> Squad { get; set; }
     }
 }
